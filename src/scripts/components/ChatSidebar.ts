@@ -54,13 +54,15 @@ const submitHandler = (sidebar: JQuery) => async (evt: any) => {
     await ChatMessage.create({
       content,
       type: getChatMessageType(),
-      user: (game as Game).user,
+      user: (game as Game).user?.id,
     })
 
     // очистить поле ввода
     if (input?.val) input.val('')
 
-    removeAllFromQueue(sidebar)
+    removeAllFromQueue(sidebar)  } catch (error) {
+    ui.notifications?.error(t('unableToLoadImage'))
+    console.error('chat-images: failed to send image message', error)
   } finally {
     uploadState.off()
     isSending = false
@@ -81,3 +83,6 @@ export const initChatSidebar = (sidebar: JQuery) => {
   const chatForm = find(chatFormQuery, sidebar)
   on(chatForm, 'submit', submitHandler(sidebar))
 }
+
+
+
