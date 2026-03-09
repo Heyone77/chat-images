@@ -31,9 +31,9 @@ const submitHandler = (sidebar: JQuery) => async (evt: any) => {
   if (isSending) return
 
   const imageQueue = getImageQueue()
-  if (!imageQueue.length) return // пусть Foundry отправляет обычное сообщение
+  if (!imageQueue.length) return // let Foundry submit regular text-only messages
 
-  // Мы отправляем сами
+  // We handle image-message submit ourselves
   evt.preventDefault()
   evt.stopPropagation()
 
@@ -42,7 +42,7 @@ const submitHandler = (sidebar: JQuery) => async (evt: any) => {
   uploadState.on()
 
   try {
-    // дождаться загрузки всех File-элементов очереди
+    // Ensure File items are uploaded before creating chat message
     await ensureUploadedQueue(sidebar)
 
     const input = find('#chat-message', sidebar) as any
@@ -51,16 +51,20 @@ const submitHandler = (sidebar: JQuery) => async (evt: any) => {
         `${messageTemplate(imageQueue)}<div class="ci-notes">${text}</div>` :
         messageTemplate(imageQueue)
 
-    await ChatMessage.create({
-      content,
-      type: getChatMessageType(),
-      user: (game as Game).user?.id,
-    })
+    const chatMessageData: Record<string, unknown> = {content}
+    if (isVeriosnAfter13()) {
+      chatMessageData.style = getChatMessageType()
+      chatMessageData.author = (game as Game).user?.id
+    } else {
+      chatMessageData.type = getChatMessageType()
+      chatMessageData.user = (game as Game).user?.id
+    }
 
-    // очистить поле ввода
+    await ChatMessage.create(chatMessageData as any)
+
     if (input?.val) input.val('')
-
-    removeAllFromQueue(sidebar)  } catch (error) {
+    removeAllFromQueue(sidebar)
+  } catch (error) {
     ui.notifications?.error(t('unableToLoadImage'))
     console.error('chat-images: failed to send image message', error)
   } finally {
@@ -75,14 +79,9 @@ export const isUploadAreaRendered = (sidebar: JQuery): boolean => {
 }
 
 export const initChatSidebar = (sidebar: JQuery) => {
-  // paste/drop
   on(sidebar, 'paste drop', pasteAndDropEventHandler(sidebar))
 
-  // submit (кнопка/enter)
   const chatFormQuery = isVeriosnAfter13() ? '.chat-form' : '#chat-form'
   const chatForm = find(chatFormQuery, sidebar)
   on(chatForm, 'submit', submitHandler(sidebar))
 }
-
-
-

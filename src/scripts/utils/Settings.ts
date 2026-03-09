@@ -4,7 +4,7 @@ import { ORIGIN_FOLDER, t, FilePickerImplementation } from './Utils'
 export const createUploadFolder = async (uploadLocation?: string) => {
   const location = uploadLocation || getSetting('uploadLocation')
   // @ts-ignore
-  const filePicker = new (FilePickerImplementation() as any)()
+  const filePicker = FilePickerImplementation() as any
   try {
     const folderLocation = await filePicker.browse(ORIGIN_FOLDER, location)
     if (folderLocation.target === '.') await filePicker.createDirectory(ORIGIN_FOLDER, location, {})
@@ -73,4 +73,5 @@ export const getSetting = (key: string): any => {
   // @ts-ignore
   return (game as Game).settings.get('chat-images', key)
 }
+
 

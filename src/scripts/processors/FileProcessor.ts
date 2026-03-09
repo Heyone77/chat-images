@@ -78,7 +78,7 @@ const uploadImage = async (saveValue: SaveValueType): Promise<string> => {
     const uploadLocation = getSetting('uploadLocation')
 
     // @ts-ignore
-    const filePicker = new (FilePickerImplementation as any)()
+    const filePicker = FilePickerImplementation() as any
 
     // @ts-ignore
     const imageLocation = await filePicker.upload(
@@ -223,3 +223,4 @@ export const removeAllFromQueue = (sidebar: JQuery) => {
   const uploadArea: JQuery = find('#ci-chat-upload-area', sidebar)
   addClass(uploadArea, 'hidden')
 }
+
