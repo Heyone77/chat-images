@@ -118,7 +118,8 @@ const addImageToQueue = async (saveValue: SaveValueType, sidebar: JQuery) => {
   if (!imagePreview || !imagePreview[0]) return
 
   removeClass(uploadArea, 'hidden')
-  append(uploadArea, imagePreview)
+  const imagesContainer: JQuery = find('.ci-upload-area-images', uploadArea)
+  append(imagesContainer[0] ? imagesContainer : uploadArea, imagePreview)
   imageQueue.push(saveValue)
 
   const removeButton = find('.ci-remove-image-icon', imagePreview)
@@ -223,4 +224,5 @@ export const removeAllFromQueue = (sidebar: JQuery) => {
   const uploadArea: JQuery = find('#ci-chat-upload-area', sidebar)
   addClass(uploadArea, 'hidden')
 }
+
 

@@ -13,43 +13,26 @@ const messageTemplate = (imageQueue: SaveValueType[]) => {
 }
 
 const getChatMessageType = () => {
-  const chatMessageType = isVeriosnAfter13() ?
-      CONST.CHAT_MESSAGE_STYLES.OOC :
-      CONST.CHAT_MESSAGE_TYPES.OOC
+  const chatMessageType = isVeriosnAfter13() ? CONST.CHAT_MESSAGE_STYLES.OOC : CONST.CHAT_MESSAGE_TYPES.OOC
   return typeof chatMessageType !== 'undefined' ? chatMessageType : 1
 }
 
-const pasteAndDropEventHandler = (sidebar: JQuery) => (evt: any) => {
-  const originalEvent: ClipboardEvent | DragEvent = evt.originalEvent
-  const eventData: DataTransfer | null = (originalEvent as ClipboardEvent).clipboardData || (originalEvent as DragEvent).dataTransfer
-  if (!eventData) return
-
-  processDropAndPasteImages(eventData, sidebar)
-}
-
-const submitHandler = (sidebar: JQuery) => async (evt: any) => {
+const sendQueuedMessage = async (sidebar: JQuery) => {
   if (isSending) return
 
   const imageQueue = getImageQueue()
-  if (!imageQueue.length) return // let Foundry submit regular text-only messages
-
-  // We handle image-message submit ourselves
-  evt.preventDefault()
-  evt.stopPropagation()
+  if (!imageQueue.length) return
 
   isSending = true
   const uploadState = getUploadingStates(sidebar)
   uploadState.on()
 
   try {
-    // Ensure File items are uploaded before creating chat message
     await ensureUploadedQueue(sidebar)
 
     const input = find('#chat-message', sidebar) as any
     const text: string = input?.val ? String(input.val() ?? '') : ''
-    const content = text ?
-        `${messageTemplate(imageQueue)}<div class="ci-notes">${text}</div>` :
-        messageTemplate(imageQueue)
+    const content = text ? `${messageTemplate(imageQueue)}<div class="ci-notes">${text}</div>` : messageTemplate(imageQueue)
 
     const chatMessageData: Record<string, unknown> = {content}
     if (isVeriosnAfter13()) {
@@ -73,6 +56,39 @@ const submitHandler = (sidebar: JQuery) => async (evt: any) => {
   }
 }
 
+const pasteAndDropEventHandler = (sidebar: JQuery) => (evt: any) => {
+  const originalEvent: ClipboardEvent | DragEvent = evt.originalEvent
+  const eventData: DataTransfer | null = (originalEvent as ClipboardEvent).clipboardData || (originalEvent as DragEvent).dataTransfer
+  if (!eventData) return
+
+  processDropAndPasteImages(eventData, sidebar)
+}
+
+const submitHandler = (sidebar: JQuery) => async (evt: any) => {
+  if (!getImageQueue().length) return
+
+  evt.preventDefault()
+  evt.stopPropagation()
+  await sendQueuedMessage(sidebar)
+}
+
+const sendButtonClickHandler = (sidebar: JQuery) => async (evt: any) => {
+  evt.preventDefault()
+  evt.stopPropagation()
+  await sendQueuedMessage(sidebar)
+}
+
+const enterFallbackHandler = (sidebar: JQuery) => async (evt: any) => {
+  const original = evt.originalEvent || evt
+  if (!original || original.key !== 'Enter') return
+  if (original.shiftKey || original.ctrlKey || original.altKey || original.metaKey) return
+  if (!getImageQueue().length) return
+
+  evt.preventDefault()
+  evt.stopPropagation()
+  await sendQueuedMessage(sidebar)
+}
+
 export const isUploadAreaRendered = (sidebar: JQuery): boolean => {
   const uploadArea = find('#ci-chat-upload-area', sidebar)
   return !!uploadArea.length
@@ -84,4 +100,10 @@ export const initChatSidebar = (sidebar: JQuery) => {
   const chatFormQuery = isVeriosnAfter13() ? '.chat-form' : '#chat-form'
   const chatForm = find(chatFormQuery, sidebar)
   on(chatForm, 'submit', submitHandler(sidebar))
+
+  const sendButton = find('#ci-send-images', sidebar)
+  on(sendButton, 'click', sendButtonClickHandler(sidebar))
+
+  const chatInput = find('#chat-message', sidebar)
+  on(chatInput, 'keydown', enterFallbackHandler(sidebar))
 }
